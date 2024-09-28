@@ -3,9 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.express as px
 
-@st.cache
+@st.cache_data
 def load_data():
-    df = pd.read_excel('data/Health_Science_Dataset.xlsx')
+    df = pd.read_excel('Health_Science_Dataset.xlsx')
     return df
 
 st.title("COVID-19, Pneumonia, and Influenza Mortality Dashboard")
