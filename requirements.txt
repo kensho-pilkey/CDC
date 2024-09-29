@@ -1,0 +1,21 @@
+warnings; python_version<"3.8"
+os; python_version<"3.8"
+sqlite3; python_version<"3.8"
+plotly==5.17.0
+us==2.0.2
+ipywidgets==8.1.0
+openpyxl==3.1.2
+nbformat==5.9.2
+scikit-learn==1.3.1
+tslearn==0.5.3
+scipy==1.11.2
+pandas==2.1.1
+matplotlib==3.7.3
+seaborn==0.12.2
+pyts==0.12.0
+numba==0.57.1
+numpy==1.23.5
+prophet=1.1.5
+kneed==0.8.5
+statsmodels==0.14.3
+pytorch==2.4.1
