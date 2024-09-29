@@ -297,7 +297,7 @@ def create_total_deaths_per_state_chart(disease_df, start_date, end_date, show_f
         title="Total Deaths per State",
         labels={'Jurisdiction': 'State', 'Total Deaths': 'Number of Deaths'},
         text_auto=True,
-        color_discrete_sequence=['#FF0000']
+        color_discrete_sequence=['#FFCCCC']
     )
     st.plotly_chart(fig)
 
