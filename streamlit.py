@@ -445,7 +445,6 @@ with st.sidebar:
         ['Total Deaths', 'Pneumonia Deaths', 'Influenza Deaths', 'Pneumonia or Influenza', 'Pneumonia, Influenza, or COVID-19 Deaths']
     )
 
-# Display the flight graphs
 col1, col2 = st.columns(2)
 
 with col1:
@@ -454,11 +453,9 @@ with col1:
 with col2:
     create_pie_chart_by_age_group(disease_df, start_date, end_date)
 
-# Display the total deaths chart
 st.subheader("Total Deaths by State (for Selected Diseases)")
 create_total_deaths_per_state_chart(disease_df, start_date, end_date, show_flu, show_covid, show_pneumonia)
 
-# Create new columns for the choropleth map and cluster graph
 col1, col2 = st.columns(2)
 
 with col1:
@@ -468,5 +465,5 @@ with col1:
 
 with col2:
     st.subheader("Cluster Graph")
-    st.write("")
+    st.write("##")
     cluster_graphs(disease_df)
