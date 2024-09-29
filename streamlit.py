@@ -7,7 +7,8 @@ import matplotlib.dates as mdates
 import us
 from datetime import datetime
 
-# Caching data loading for better performance
+st.set_page_config(layout="wide")
+
 @st.cache_data
 def load_data():
     disease_df = pd.read_excel('Health_Science_Dataset.xlsx', header=1)
@@ -57,7 +58,7 @@ def flight_graphs(flight_df, disease_df, start_date, end_date, show_flu, show_co
 
     # Convert Week Ending Date to datetime in disease_df
     disease_df['Week Ending Date'] = pd.to_datetime(disease_df['Week Ending Date'])
-
+    disease_df = disease_df[(disease_df['Jurisdiction'] == 'United States') & (disease_df['Age Group'] == 'All Ages')]
     # Deaths data for each category
     deaths_by_week = disease_df.groupby('Week Ending Date')['Pneumonia, Influenza, or COVID-19 Deaths'].sum().reset_index()
     flu_deaths_by_week = disease_df.groupby('Week Ending Date')['Influenza Deaths'].sum().reset_index()
@@ -118,6 +119,33 @@ def flight_graphs(flight_df, disease_df, start_date, end_date, show_flu, show_co
     fig.tight_layout()
     st.pyplot(fig)
 
+# Function to create the pie chart comparing total deaths by age group
+def create_pie_chart_by_age_group(disease_df, start_date, end_date):
+    # Filter data for the selected date range
+    filtered_df = disease_df[
+        (disease_df['Week Ending Date'] >= pd.to_datetime(start_date)) &
+        (disease_df['Week Ending Date'] <= pd.to_datetime(end_date)) &
+        (disease_df['Jurisdiction'] == 'United States')
+    ]
+
+    # Group by age group and sum total deaths
+    age_group_df = filtered_df.groupby('Age Group')['Pneumonia, Influenza, or COVID-19 Deaths'].sum().reset_index()
+
+    # Filter out "All Ages" for the pie chart
+    age_group_df = age_group_df[age_group_df['Age Group'] != 'All Ages']
+
+    red_shades = ['#FFCCCC', '#FF9999', '#FF6666']
+    # Create pie chart
+    fig = px.pie(
+        age_group_df, 
+        values='Pneumonia, Influenza, or COVID-19 Deaths', 
+        names='Age Group',
+        title="Total Deaths by Age Group",
+        hole=0.3,
+        color_discrete_sequence=red_shades
+    )
+    st.plotly_chart(fig)
+
 # Function to create the choropleth map with year annotation
 def create_choropleth_with_year_annotation(df, death_metric):
     if 'Date' not in df.columns:
@@ -144,18 +172,62 @@ def create_choropleth_with_year_annotation(df, death_metric):
         hoverinfo='text+z',
     ))
 
-    initial_year = pd.to_datetime(date).year
+    # Set transparent background
     fig.update_layout(
+        geo=dict(
+            showframe=False,
+            showcoastlines=False,
+            projection_type='albers usa',
+            bgcolor='rgba(0,0,0,0)'  # Transparent map background
+        ),
+        plot_bgcolor='rgba(0,0,0,0)',  # Transparent plot background
+        paper_bgcolor='rgba(0,0,0,0)',  # Transparent paper background
+        sliders=[dict(
+            active=0,
+            currentvalue={'prefix': '', 'font': {'size': 16, 'color': '#666'}, 'visible': False, 'xanchor': 'right'},
+            steps=[dict(
+                method='animate',
+                args=[
+                    [str(date)],
+                    {'mode': 'immediate', 'frame': {'duration': 500, 'redraw': True}, 'transition': {'duration': 0}}
+                ],
+                label=''  # Hide labels
+            ) for date in dates]
+        )],
         annotations=[dict(
             x=0.5,
             y=1.05,
             xref='paper',
             yref='paper',
-            text=f"Year: {initial_year}",
+            text=f"Year: {pd.to_datetime(date).year}",
             showarrow=False,
             font=dict(size=16),
             align='center',
-        )]
+        )],
+        updatemenus=[
+            dict(
+                type='buttons',
+                showactive=True,
+                buttons=[
+                    dict(
+                        label='Play',
+                        method='animate',
+                        args=[None, {'frame': {'duration': 300, 'redraw': True}, 'fromcurrent': True}],
+                    ),
+                    dict(
+                        label='Pause',
+                        method='animate',
+                        args=[[None], {'mode': 'immediate', 'frame': {'duration': 0, 'redraw': False}, 'transition': {'duration': 0}}],
+                    )
+                ],
+                direction="left",
+                pad={"r": 10, "t": 10},
+                x=0.1,
+                xanchor="right",
+                y=0.1,
+                yanchor="top"
+            )
+        ]
     )
 
     frames = []
@@ -189,61 +261,53 @@ def create_choropleth_with_year_annotation(df, death_metric):
 
     fig.frames = frames
 
-    steps = []
-    for date in dates:
-        date_str = str(date)
-        step = dict(
-            method='animate',
-            args=[
-                [date_str],
-                {'mode': 'immediate', 'frame': {'duration': 500, 'redraw': True}, 'transition': {'duration': 0}}
-            ],
-            label=''  # Remove labels to avoid clutter
-        )
-        steps.append(step)
-
-    sliders = [dict(
-        active=0,
-        currentvalue={'prefix': '', 'font': {'size': 16, 'color': '#666'}, 'visible': False, 'xanchor': 'right'},
-        steps=steps
-    )]
-
-    fig.update_layout(
-        sliders=sliders,
-        title_text=f'{death_metric} Over Time',
-        title_x=0.5,
-        geo_scope='usa',
-        geo_projection_type='albers usa',
-        updatemenus=[dict(
-            type='buttons',
-            buttons=[dict(
-                label='Play',
-                method='animate',
-                args=[None, {'frame': {'duration': 500, 'redraw': True}, 'fromcurrent': True}]
-            )],
-            x=0.1,
-            y=0,
-            xanchor='right',
-            yanchor='top'
-        )]
-    )
-
     return fig
 
-# Streamlit app
-st.title("COVID-19, Pneumonia, and Influenza Mortality Dashboard with Choropleth")
+# Function to create a bar chart comparing total deaths per state
+def create_total_deaths_per_state_chart(disease_df, start_date, end_date, show_flu, show_covid, show_pneumonia):
+    # Filter data for the selected date range and 'All Ages'
+    filtered_df = disease_df[
+        (disease_df['Week Ending Date'] >= pd.to_datetime(start_date)) &
+        (disease_df['Week Ending Date'] <= pd.to_datetime(end_date)) &
+        (disease_df['Age Group'] == 'All Ages')
+    ]
 
-# Load data
+    # Exclude non-state jurisdictions
+    excluded_jurisdictions = ['United States'] + [f'HHS Region {i}' for i in range(1, 11)]
+    filtered_df = filtered_df[~filtered_df['Jurisdiction'].isin(excluded_jurisdictions)]
+
+    # Select relevant columns for the selected diseases
+    columns_to_sum = []
+    if show_flu:
+        columns_to_sum.append('Influenza Deaths')
+    if show_covid:
+        columns_to_sum.append('COVID-19 Deaths')
+    if show_pneumonia:
+        columns_to_sum.append('Pneumonia Deaths')
+
+    # Group by state and sum the deaths
+    state_deaths_df = filtered_df.groupby('Jurisdiction')[columns_to_sum].sum().reset_index()
+
+    # Create a bar chart
+    state_deaths_df['Total Deaths'] = state_deaths_df[columns_to_sum].sum(axis=1)
+    fig = px.bar(
+        state_deaths_df,
+        x='Jurisdiction',
+        y='Total Deaths',
+        title="Total Deaths per State",
+        labels={'Jurisdiction': 'State', 'Total Deaths': 'Number of Deaths'},
+        text_auto=True,
+        color_discrete_sequence=['#FF0000']
+    )
+    st.plotly_chart(fig)
+
+
+st.title("COVID-19, Pneumonia, and Influenza Mortality Dashboard with Choropleth")
+st.write("")
 disease_df, flight_df = load_data()
 df = load_health_data()
 
-# Sidebar for selecting death metric
-death_metric = st.sidebar.selectbox(
-    "Select Map Death Metric:",
-    ['Total Deaths', 'Pneumonia Deaths', 'Influenza Deaths', 'Pneumonia or Influenza', 'Pneumonia, Influenza, or COVID-19 Deaths']
-)
 
-# Sidebar for selecting date range and which death types to show
 with st.sidebar:
     st.title('📅 Select Time Range')
 
@@ -266,9 +330,25 @@ with st.sidebar:
     show_pneumonia = st.checkbox("Show Pneumonia Deaths", value=True)
     show_total = st.checkbox("Show Total Deaths", value=True)
 
+    st.title('🗺️ Map Settings')
+
+    death_metric = st.selectbox(
+        "Map Death Metric:",
+        ['Total Deaths', 'Pneumonia Deaths', 'Influenza Deaths', 'Pneumonia or Influenza', 'Pneumonia, Influenza, or COVID-19 Deaths']
+    )
+
 # Display the flight graphs
-st.subheader("Flu, COVID-19, Pneumonia Deaths vs Flight Cancellations")
-flight_graphs(flight_df, disease_df, start_date, end_date, show_flu, show_covid, show_pneumonia, show_total)
+col1, col2 = st.columns(2)
+
+with col1:
+    flight_graphs(flight_df, disease_df, start_date, end_date, show_flu, show_covid, show_pneumonia, show_total)
+
+# Display the pie chart for age groups
+with col2:
+    create_pie_chart_by_age_group(disease_df, start_date, end_date)
+
+st.subheader("Total Deaths by State (for Selected Diseases)")
+create_total_deaths_per_state_chart(disease_df, start_date, end_date, show_flu, show_covid, show_pneumonia)
 
 # Display the choropleth map
 st.subheader("Choropleth Map of Deaths by State")
