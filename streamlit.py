@@ -7,6 +7,33 @@ import matplotlib.dates as mdates
 import us
 from datetime import datetime
 
+import sys
+print("Python executable:", sys.executable)
+import numpy as np 
+print("NumPy version:", np.__version__)
+print("NumPy location:", np.__file__)
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import warnings
+import os
+import sqlite3
+import us
+from ipywidgets import widgets, interact
+import plotly.graph_objects as go
+from tslearn.clustering import TimeSeriesKMeans
+from tslearn.preprocessing import TimeSeriesScalerMeanVariance
+from tslearn.utils import to_time_series_dataset
+import seaborn as sns
+from prophet import Prophet
+import plotly.express as px
+import us
+from kneed import KneeLocator
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+import torch
+import torch.nn as nn
+from scipy.stats import f_oneway
+
 st.set_page_config(layout="wide")
 
 @st.cache_data
