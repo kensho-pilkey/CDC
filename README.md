@@ -26,7 +26,7 @@ To evaluate the effectiveness of our clustering, we utilized the **Silhouette Sc
 
 1. **Regional Clustering Trends**
    - **Clusters Identified:**
-     - **Southeast, Southwest, and Southeast Clusters:** States within these regions exhibited **similar trends** in total deaths over time, characterized by **consistent spikes and declines** corresponding to pandemic waves and seasonal respiratory illnesses.
+     - **Southeast, Southwest, and West Clusters:** States within these regions exhibited **similar trends** in total deaths over time, characterized by **consistent spikes and declines** corresponding to pandemic waves and seasonal respiratory illnesses.
      - **Midwest and Northeast Clusters:** States in these regions showed distinct mortality trends, differing notably from those in the Southeast and Southwest. These differences may be attributed to **varying public health responses**, **population densities**, and **socio-economic factors**.
    
    - **Geospatial Visualization:**
