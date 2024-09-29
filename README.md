@@ -2,8 +2,6 @@
 
 ## Team: Analysis on Influenza, Pneumonia, and COVID Trends & Travel
 
-https://cdc2024.streamlit.app/
-
 Welcome to our project repository for the **Carolina Data Challenge 2024**! We are a team competing in the **Health Sciences Track**, aiming to uncover insights into influenza, pneumonia, and COVID-19 trends & travel restrictions across the United States.
 
 ## Project Overview
