@@ -239,7 +239,7 @@ df = load_health_data()
 
 # Sidebar for selecting death metric
 death_metric = st.sidebar.selectbox(
-    "Select Death Metric:",
+    "Select Map Death Metric:",
     ['Total Deaths', 'Pneumonia Deaths', 'Influenza Deaths', 'Pneumonia or Influenza', 'Pneumonia, Influenza, or COVID-19 Deaths']
 )
 
