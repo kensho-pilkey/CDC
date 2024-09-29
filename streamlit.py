@@ -173,7 +173,88 @@ def create_pie_chart_by_age_group(disease_df, start_date, end_date):
     )
     st.plotly_chart(fig)
 
-# Function to create the choropleth map with year annotation
+def cluster_graphs(df):
+    for col_idx in [6, 7, 8, 9]:
+        col_name = df.columns[col_idx]
+        df[col_name] = df[col_name].astype(str)
+
+    # Dates
+    for col_idx in [0, 1, 2, 5]:
+        col_name = df.columns[col_idx]
+        df[col_name] = pd.to_datetime(df[col_name], format='%Y-%m-%d %H:%M:%S', errors='coerce')
+
+    # Year
+    df['MMWRyear'] = df['MMWRyear'].astype(int)
+
+    # Integer
+    for col_idx in [4] + list(range(10, 16)):
+        col_name = df.columns[col_idx]
+        df[col_name] = df[col_name].apply(lambda x: int(x) if pd.notna(x) else x)
+
+    # Construct 'Year-Week' string
+    df['Year-Week'] = df['MMWRyear'].astype(str) + '-W' + df['MMWRweek'].astype(str).str.zfill(2)
+    # Convert 'Year-Week' to datetime using ISO week date format
+    df['Date'] = pd.to_datetime(df['Year-Week'] + '-1', format='%G-W%V-%u', errors='coerce')
+    # Convert 'Date' to string
+    df['Date_Str'] = df['Date'].dt.strftime('%Y-%m-%d')
+
+    state_names = [state.name for state in us.states.STATES]
+    state_abbrevs = [state.abbr for state in us.states.STATES]
+    name_to_abbr = {state.name: state.abbr for state in us.states.STATES}
+
+    def map_jurisdiction(jurisdiction):
+        if jurisdiction in state_abbrevs:
+            return jurisdiction
+        elif jurisdiction in name_to_abbr:
+            return name_to_abbr[jurisdiction]
+        else:
+            return None  # For unrecognized jurisdictions
+
+    df['State_Abbr'] = df['Jurisdiction'].apply(map_jurisdiction)
+
+    # Filter out unrecognized states
+    df = df[df['State_Abbr'].notna()].copy()
+
+    # Map 'State_Abbr' to FIPS codes
+    abbr_to_fips = {state.abbr: state.fips for state in us.states.STATES}
+    df['FIPS'] = df['State_Abbr'].map(abbr_to_fips)
+    
+    optimal_k = 2  # Adjust based on the Elbow curve
+    metric = 'Total Deaths'
+
+    # Pivot the dataframe to have states as rows and dates as columns
+    df_pivot = df.pivot_table(
+        index='State_Abbr',
+        columns='Date',
+        values=metric,
+        aggfunc='sum'
+    )
+
+    # Fill missing values with zeros (or you can use interpolation)
+    scaler = TimeSeriesScalerMeanVariance()
+    df_pivot.fillna(0, inplace=True)
+    X_scaled = scaler.fit_transform(df_pivot.values)
+    
+    # Convert to a time series dataset for clustering
+    X_ts = to_time_series_dataset(X_scaled)
+    
+    # Apply TimeSeriesKMeans clustering
+    km_dtw = TimeSeriesKMeans(n_clusters=optimal_k, metric="dtw", random_state=42)
+    clusters = km_dtw.fit_predict(X_ts)
+    df_pivot['Cluster'] = clusters
+
+    # Plotting the cluster centroids
+    fig, ax = plt.subplots(figsize=(12, 6))
+    for i in range(optimal_k):
+        ax.plot(km_dtw.cluster_centers_[i].ravel(), label=f'Cluster {i}')
+    ax.legend()
+    ax.set_title(f'Cluster Centroids for {metric}')
+    ax.set_xlabel('Time Index')
+    ax.set_ylabel('Standardized Deaths')
+    
+    # Display the plot in Streamlit
+    st.pyplot(fig)
+
 def create_choropleth_with_year_annotation(df, death_metric):
     if 'Date' not in df.columns:
         df['Year-Week'] = df['MMWRyear'].astype(str) + '-W' + df['MMWRweek'].astype(str).str.zfill(2)
@@ -370,14 +451,22 @@ col1, col2 = st.columns(2)
 with col1:
     flight_graphs(flight_df, disease_df, start_date, end_date, show_flu, show_covid, show_pneumonia, show_total)
 
-# Display the pie chart for age groups
 with col2:
     create_pie_chart_by_age_group(disease_df, start_date, end_date)
 
+# Display the total deaths chart
 st.subheader("Total Deaths by State (for Selected Diseases)")
 create_total_deaths_per_state_chart(disease_df, start_date, end_date, show_flu, show_covid, show_pneumonia)
 
-# Display the choropleth map
-st.subheader("Choropleth Map of Deaths by State")
-choropleth_fig = create_choropleth_with_year_annotation(df, death_metric)
-st.plotly_chart(choropleth_fig)
+# Create new columns for the choropleth map and cluster graph
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Choropleth Map of Deaths by State")
+    choropleth_fig = create_choropleth_with_year_annotation(df, death_metric)
+    st.plotly_chart(choropleth_fig)
+
+with col2:
+    st.subheader("Cluster Graph")
+    st.write("")
+    cluster_graphs(disease_df)
