@@ -1,4 +1,4 @@
-Note: This project was selected First Place Winner of the Health Sciences Track at Carolina Data Challenge 2024.
+*Note: This project was selected First Place Winner of the Health Sciences Track at Carolina Data Challenge 2024.*
 
 # Carolina Data Challenge 2024 - Health Sciences Track
 
